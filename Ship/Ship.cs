@@ -1,29 +1,44 @@
-﻿namespace BattleshipsAda
+﻿using System;
+
+namespace BattleshipsAda
 {
     public class Ship
     {
-        private readonly string _type;
-        private readonly int _length;
-        private readonly Section[] _sections;
+        private readonly ShipType _type;
 
-        private Orientation _orientation;
         private bool _destroyed;
 
-        public Ship(string type, int length, Orientation orientation = Orientation.NONE) {
+        public Orientation Orientation { get; }
+        public int Length { get; }
+        public Section[] Sections { get; }
+        public bool Placed { get; set; }
+        public Board.Tile StartTile { get; set; }
+        public Board.Tile EndTile { get; set; }
+
+        public Ship(ShipType type, Orientation orientation = Orientation.NONE) {
             _type = type;
-            _length = length;
-            _orientation = orientation;
+            Orientation = orientation;
             _destroyed = false;
-            _sections = new Section[length];
+            Length = type.Length;
+            Sections = new Section[Length];
+            PopulateSections();
         }
-        
+
+        private void PopulateSections() {
+            for (var i = 0; i < Sections.Length; i++) {
+                Sections[i] = new Section(this);
+            }
+        }
+
         public class Section
         {
-            public Section() {
+            public bool Damaged { get; set; }
+            public Ship Ship { get; }
+            
+            public Section(Ship ship) {
+                Ship = ship;
                 Damaged = false;
             }
-
-            public bool Damaged { get; set; }
         }
     }
 }

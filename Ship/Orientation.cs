@@ -2,8 +2,8 @@
 {
     public enum Orientation
     {
+        NONE,
         HORIZONTAL,
-        VERTICAL,
-        NONE
+        VERTICAL
     }
 }

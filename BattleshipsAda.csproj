@@ -6,4 +6,8 @@
         <LangVersion>latest</LangVersion>
     </PropertyGroup>
 
+    <ItemGroup>
+      <None Remove="BattleshipsAda.csproj.DotSettings" />
+    </ItemGroup>
+
 </Project>
