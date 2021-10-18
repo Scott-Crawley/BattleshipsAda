@@ -1,16 +1,22 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 
 namespace BattleshipsAda
 {
     public class Fleet
     {
-        private Admiral _admiral;
+        private readonly IAdmiral _admiral;
         
         public Ship[] Ships { get; }
+        public int DestroyedShips { get; private set; }
 
-        public Fleet(Admiral admiral) {
+        public Fleet(IAdmiral admiral) {
             _admiral = admiral;
-            Ships = Controller.Get().ShipTypes.Select(type => new Ship(type)).ToArray();
+            Ships = Controller.Get().ShipTypes.Select(type => {
+                var ship = new Ship(type);
+                ship.OnDestroyedEvent += UpdateDestroyed;
+                return ship;
+            }).ToArray();
         }
 
         public Ship[] GetUnplacedShips() {
@@ -21,10 +27,14 @@ namespace BattleshipsAda
             return Ships.Where(ship => ship.Placed).ToArray();
         }
 
+        private void UpdateDestroyed(object sender, EventArgs e) {
+            DestroyedShips++;
+        }
+
         public bool PlaceShip(Ship ship, Board.Tile startTile, Orientation orientation) {
             if (!Ships.Contains(ship)) return false;
             if (!_admiral.Board.Tiles.Contains(startTile)) return false;
-            if (startTile.Section.Ship != null && startTile.Section.Ship != ship) return false;
+            if (startTile.Section != null && startTile.Section.Ship != ship) return false;
 
             if (ship.Placed) {
                 if (!UnplaceShip(ship)) return false;
@@ -39,6 +49,7 @@ namespace BattleshipsAda
             }
             
             ship.Placed = true;
+            ship.Orientation = orientation;
             ship.StartTile = startTile;
             ship.EndTile = tiles[ship.Length - 1];
             return true;
@@ -50,6 +61,9 @@ namespace BattleshipsAda
 
             if (!_admiral.Board.FreeTiles(ship.StartTile, ship.EndTile, ship.Orientation)) return false;
             ship.Placed = false;
+            ship.Orientation = Orientation.NONE;
+            ship.StartTile = null;
+            ship.EndTile = null;
             return true;
         }
     }

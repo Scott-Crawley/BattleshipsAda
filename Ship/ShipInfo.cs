@@ -1,11 +1,11 @@
 ﻿namespace BattleshipsAda
 {
-    public class ShipType
+    public class ShipInfo
     {
         public readonly string Name;
         public readonly int Length;
 
-        public ShipType(string name, int length) {
+        public ShipInfo(string name, int length) {
             Name = name;
             Length = length;
         }

@@ -1,4 +1,6 @@
-﻿namespace BattleshipsAda
+﻿using System;
+
+namespace BattleshipsAda
 {
     public enum Orientation
     {

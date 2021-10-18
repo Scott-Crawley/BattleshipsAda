@@ -4,22 +4,25 @@ namespace BattleshipsAda
 {
     public class Ship
     {
-        private readonly ShipType _type;
+        private readonly ShipInfo _info;
 
+        private int _damageValue;
         private bool _destroyed;
 
-        public Orientation Orientation { get; }
-        public int Length { get; }
+        public Orientation Orientation { get; set; }
+        public int Length => _info.Length;
+        public string Name => _info.Name;
         public Section[] Sections { get; }
         public bool Placed { get; set; }
         public Board.Tile StartTile { get; set; }
         public Board.Tile EndTile { get; set; }
 
-        public Ship(ShipType type, Orientation orientation = Orientation.NONE) {
-            _type = type;
+        public delegate void DestroyedStatusHandler(object sender, EventArgs e);
+        public event DestroyedStatusHandler OnDestroyedEvent;
+
+        public Ship(ShipInfo info, Orientation orientation = Orientation.NONE) {
+            _info = info;
             Orientation = orientation;
-            _destroyed = false;
-            Length = type.Length;
             Sections = new Section[Length];
             PopulateSections();
         }
@@ -30,14 +33,34 @@ namespace BattleshipsAda
             }
         }
 
+        private void UpdateDamage() {
+            if (_destroyed) return;
+            if (_damageValue + 1 >= Length) {
+                _destroyed = true;
+                OnDestroyedEvent(this, EventArgs.Empty);
+            }
+            else {
+                _damageValue++;
+            }
+        }
+
         public class Section
         {
-            public bool Damaged { get; set; }
+            private bool _damaged;
+            
+            public bool Damaged {
+                get => _damaged;
+                set {
+                    if (_damaged || value == false) return;
+                    Ship.UpdateDamage();
+                    _damaged = true;
+                }
+            }
+
             public Ship Ship { get; }
             
             public Section(Ship ship) {
                 Ship = ship;
-                Damaged = false;
             }
         }
     }
