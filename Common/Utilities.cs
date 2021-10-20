@@ -22,7 +22,7 @@ namespace BattleshipsAda
             while (true) {
                 var input = RequestInput("Selection: ");
                 if (!int.TryParse(input, out var choice)) continue;
-                if (choice <= maxValue) return choice;
+                if (choice <= maxValue && choice >= 0) return choice;
             }
         }
     }

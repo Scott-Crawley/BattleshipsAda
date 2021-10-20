@@ -7,7 +7,7 @@
 
         public abstract void AttackTile(Board.Tile tile);
 
-        public abstract Board.Tile GetTileToAttack();
+        public abstract Board.Tile GetTileAsInput();
 
         public abstract void AutoPlaceShips(bool allShips = true);
 

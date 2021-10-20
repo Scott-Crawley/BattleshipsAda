@@ -11,8 +11,8 @@ namespace BattleshipsAda
         public Board TargetBoard { get; }
 
         public Computer(Tuple<int, int> boardSize) {
-            Board = new Board(boardSize);
-            TargetBoard = new Board(boardSize);
+            Board = new Board(boardSize, "[AI] Board");
+            TargetBoard = new Board(boardSize, "[AI] Target Board");
             _fleet = new Fleet(this);
             _random = new Random();
         }
@@ -22,7 +22,7 @@ namespace BattleshipsAda
         }
 
         public void DoTurn() {
-            throw new NotImplementedException();
+            
         }
         
         public bool IsDefeated() {
@@ -33,8 +33,8 @@ namespace BattleshipsAda
             throw new NotImplementedException();
         }
         
-        public Board.Tile GetTileToAttack() {
-            throw new NotImplementedException();
+        public Board.Tile GetTileAsInput() {
+            return Board.GetRandomFreeTile();
         }
         
         public void AutoPlaceShips(bool allShips = true) {
@@ -43,13 +43,13 @@ namespace BattleshipsAda
                 var placed = false;
                 while (!placed) {
                     var orientation = RandomOrientation();
-                    placed = _fleet.PlaceShip(ship, Board.GetRandomFreeTile(), orientation);
+                    placed = _fleet.PlaceShip(ship, GetTileAsInput(), orientation);
                 }
             }
         }
 
         private Orientation RandomOrientation() {
-            return _random.Next(1, 10) % 2 == 0 ? Orientation.VERTICAL : Orientation.HORIZONTAL;
+            return _random.Next(1, 10) % 2 == 0 ? Orientation.Vertical : Orientation.Horizontal;
         }
     }
 }

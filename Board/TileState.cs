@@ -2,8 +2,8 @@
 {
     public enum TileState
     {
-        NONE,
-        HIT,
-        MISS
+        None,
+        Hit,
+        Miss
     }
 }

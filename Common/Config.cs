@@ -39,7 +39,7 @@ namespace BattleshipsAda
                     .Replace(SPACE, string.Empty)
                     .Split(COLON);
 
-                var key = splitLine[0];
+                var key = splitLine[0];                                                                           // Config (should be) formatted as `key: value`
                 var value = splitLine[1];
                 switch (key) {
                     case BOAT: {

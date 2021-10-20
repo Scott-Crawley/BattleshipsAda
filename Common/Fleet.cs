@@ -14,7 +14,7 @@ namespace BattleshipsAda
             _admiral = admiral;
             Ships = Controller.Get().ShipTypes.Select(type => {
                 var ship = new Ship(type);
-                ship.OnDestroyedEvent += UpdateDestroyed;
+                ship.OnDestroyedEvent += UpdateDestroyed;                                                               // Event delegate modifies Fleet without cyclical dependency
                 return ship;
             }).ToArray();
         }
@@ -32,15 +32,15 @@ namespace BattleshipsAda
         }
 
         public bool PlaceShip(Ship ship, Board.Tile startTile, Orientation orientation) {
-            if (!Ships.Contains(ship)) return false;
-            if (!_admiral.Board.Tiles.Contains(startTile)) return false;
-            if (startTile.Section != null && startTile.Section.Ship != ship) return false;
+            if (!Ships.Contains(ship)) return false;                                                                    // Ensure we own this ship
+            if (!_admiral.Board.Tiles.Contains(startTile)) return false;                                                // Ensure we own this tile
+            if (startTile.Section != null && startTile.Section.Ship != ship) return false;                              // Ensure the tile is free (excluding if it's this ship)
 
             if (ship.Placed) {
-                if (!UnplaceShip(ship)) return false;
+                if (!UnplaceShip(ship)) return false;                                                                   // If our ship is already placed, we can move it by unplacing
             }
 
-            var tiles = _admiral.Board.ReserveTiles(startTile, orientation, ship.Length);
+            var tiles = _admiral.Board.FindContinuousTilesAt(startTile, orientation, ship.Length);
             if (tiles == null) return false;
             
             for (var i = 0; i < ship.Length; i++) {
@@ -59,9 +59,9 @@ namespace BattleshipsAda
             if (!Ships.Contains(ship)) return false;
             if (!ship.Placed) return true;
 
-            if (!_admiral.Board.FreeTiles(ship.StartTile, ship.EndTile, ship.Orientation)) return false;
+            if (!_admiral.Board.UnclaimTiles(ship.StartTile, ship.EndTile, ship.Orientation)) return false;
             ship.Placed = false;
-            ship.Orientation = Orientation.NONE;
+            ship.Orientation = Orientation.None;
             ship.StartTile = null;
             ship.EndTile = null;
             return true;

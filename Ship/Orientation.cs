@@ -1,11 +1,9 @@
-﻿using System;
-
-namespace BattleshipsAda
+﻿namespace BattleshipsAda
 {
     public enum Orientation
     {
-        NONE,
-        HORIZONTAL,
-        VERTICAL
+        None,
+        Horizontal,
+        Vertical
     }
 }

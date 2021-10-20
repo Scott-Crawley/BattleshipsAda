@@ -18,9 +18,9 @@ namespace BattleshipsAda
         public Board.Tile EndTile { get; set; }
 
         public delegate void DestroyedStatusHandler(object sender, EventArgs e);
-        public event DestroyedStatusHandler OnDestroyedEvent;
+        public event DestroyedStatusHandler OnDestroyedEvent;                                                           // See 'Fleet' constructor
 
-        public Ship(ShipInfo info, Orientation orientation = Orientation.NONE) {
+        public Ship(ShipInfo info, Orientation orientation = Orientation.None) {
             _info = info;
             Orientation = orientation;
             Sections = new Section[Length];
@@ -37,7 +37,7 @@ namespace BattleshipsAda
             if (_destroyed) return;
             if (_damageValue + 1 >= Length) {
                 _destroyed = true;
-                OnDestroyedEvent(this, EventArgs.Empty);
+                OnDestroyedEvent?.Invoke(this, EventArgs.Empty);
             }
             else {
                 _damageValue++;
