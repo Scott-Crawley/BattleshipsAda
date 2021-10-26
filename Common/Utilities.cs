@@ -6,7 +6,7 @@ namespace BattleshipsAda
     public class Utilities
     {
         public static string RequestInput(string prompt) {
-            Console.WriteLine(prompt);
+            Console.Write(prompt);
             return Console.ReadLine();
         }
 

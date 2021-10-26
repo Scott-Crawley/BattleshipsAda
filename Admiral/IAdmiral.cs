@@ -1,17 +1,15 @@
-﻿namespace BattleshipsAda
+﻿using System;
+
+namespace BattleshipsAda
 {
     public interface IAdmiral
     {
+        public string Name { get; }
+        
         public Board Board { get; }
         public Board TargetBoard { get; }
 
-        public abstract void AttackTile(Board.Tile tile);
-
-        public abstract Board.Tile GetTileAsInput();
-
-        public abstract void AutoPlaceShips(bool allShips = true);
-
-        public abstract void DoTurn();
+        public abstract Tuple<int, int> RequestAttackCoords();
 
         public abstract bool IsDefeated();
 

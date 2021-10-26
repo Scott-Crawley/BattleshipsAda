@@ -24,8 +24,9 @@ namespace BattleshipsAda
             return y < boardSize.Item2 && y >= 0 && x < boardSize.Item1 && x >= 0;                                      // Ensure x/y are in the board's range
         }
 
-        public static int GetLetterCoordValue(string coord) {
+        public static int GetValueFromLetter(string coord) {
             coord = coord.ToUpper();
+            if (coord.Length <= 0) return -1;
             var first = ALPHABET.IndexOf(coord[0]);
             switch (coord.Length) {
                 case 1:
@@ -36,6 +37,15 @@ namespace BattleshipsAda
                 default:
                     return -1;
             }
+        }
+        
+        public static string GetLetterFromValue(int value) {
+            if (value <= 25) {
+                return ALPHABET[value].ToString();
+            }
+            var remainder = value % 26;
+            var wraps = (value - remainder) / 26;
+            return $"{ALPHABET[wraps]}{ALPHABET[remainder]}";
         }
     }
 }

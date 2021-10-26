@@ -9,6 +9,7 @@ namespace BattleshipsAda
         private readonly Tuple<int, int> _size;
         private readonly int _totalSize;
         private readonly string _boardName;
+        private readonly bool _warnSize;
 
         public Tile[] Tiles { get; }
 
@@ -16,6 +17,9 @@ namespace BattleshipsAda
             _boardName = name;
             _size = size;
             _totalSize = _size.Item1 * _size.Item2;
+            if (_totalSize > 900) {                                                                                     // 900 = 30x30
+                _warnSize = true;
+            }
             Tiles = new Tile[_totalSize];
             PopulateTiles();
         }
@@ -38,12 +42,17 @@ namespace BattleshipsAda
             var wraps = -1;
             
             while (total < _size.Item1) {
-                if (index >= 26) {
+                if (index >= 26) {                                                                                      // Array wrapping
                     index = 0;
                     wraps++;
                 }
-                if (wraps >= 0) axisStr += Coordinates.ALPHABET[wraps];                                                 // Wrapping allows for theoretical max size of 676x676 (ZZ)
-                axisStr += Coordinates.ALPHABET[index] + "  ";
+
+                var padding = "  ";
+                if (wraps >= 0) {
+                    axisStr += Coordinates.ALPHABET[wraps];                                                             // Wrapping allows for theoretical max size of 701x701 (ZZ)
+                    padding = " ";                                                                                      // 1 less pad for double-size label
+                }
+                axisStr += Coordinates.ALPHABET[index] + padding;
                 total++; 
                 index++;
             }
@@ -89,27 +98,37 @@ namespace BattleshipsAda
         
         
         // ############### PUBLIC METHODS ############### //
-        public void Render() {
+        public void Render(bool clear = false) {
+            if (clear) Console.Clear();
             Console.WriteLine();
-            Console.WriteLine(_boardName.PadLeft(_size.Item1 * 2));                                                     // Centre is (very roughly) twice the X-axis length
+            Console.WriteLine(_boardName.PadLeft(_boardName.Length + (_size.Item1 * 3 / 4) + _size.Item1 / 2));         // Centre is calculated as this somehow ¯\_(ツ)_/¯
             
             var tileNo = 0;
-            for (var row = _size.Item2 - 1; row >= 0; row--) {                                                      // Decrement to get ascending Y-axis
-                var rowStr = $"{row,3}  ";
+            for (var row = _size.Item2; row > 0; row--) {                                                           // Decrement to get ascending Y-axis
+                var rowStr = $"{row,3}";
                 for (var column = 0; column < _size.Item1; column++) {
-                    rowStr += Tiles[tileNo].Section == null ? "." : $"{Tiles[tileNo].Section.Ship.Name[0]}";
-                    rowStr += "  ";
+                    var section  = Tiles[tileNo].Section;
+                    var shipChar = Tiles[tileNo].Attacked switch {
+                        TileState.Hit => 'X',                                                                           // HIT
+                        TileState.Miss => 'O',                                                                          // MISS
+                        _ => '.'                                                                                        // Default
+                    };
+                    if (section != null) {                                                                              // Section always null on Target Boards; won't run (good!)
+                        shipChar = section.Damaged ? 'X' : section.Ship.Name[0];                                        // If a ship section, and not damaged, use the initial
+                    }
+                    rowStr += $"{shipChar,3}";
                     tileNo++;
                 }
                 Console.WriteLine(rowStr);
             }
             Console.WriteLine(GenerateXAxis());
+            if (_warnSize) Console.WriteLine("WARN: Boards over 30x30 may introduce graphical issues");                 // It [works] up to 701x701; [usability] not guaranteed
             Console.WriteLine();
         }
 
         public Tile[] FindContinuousTilesAt(Tile startTile, Orientation orientation, int numTiles) {
-            if (startTile == null) return null;
-            if (orientation == Orientation.None) return null;
+            if (startTile == null)                     return null;
+            if (orientation == Orientation.None)       return null;
             if (numTiles < 0 || numTiles > _totalSize) return null;
 
             var (x, y) = startTile.Coords;
@@ -129,7 +148,7 @@ namespace BattleshipsAda
                 if (endTile?.Section != null) continue;                                                                 // Ensure endTile is free (and not null)
                 
                 var tiles = GetTilesBetween(startTile, endTile, orientation);
-                if (tiles != null && tiles.All(tile => tile != null && tile.Section == null)) {                 // Ensure tiles in between are free
+                if (tiles != null && tiles.All(tile => tile != null && tile.Section == null)) {                 // Ensure tiles in-between are free
                     return (Tile[]) tiles;
                 }
             }
@@ -153,9 +172,12 @@ namespace BattleshipsAda
                 : Tiles.FirstOrDefault(tile => Equals(tile.Coords, coords));
         }
 
-        public Tile GetRandomFreeTile() {
-            var freeTiles = Tiles.Where(tile => tile.Section == null).ToArray();
-            return freeTiles.ElementAt(new Random().Next(0, freeTiles.Length - 1));
+        public Tile GetRandomTile(Func<Tile, bool> matchCriteria = null) {                                              // Predicate for custom matching criteria
+            var tiles = Tiles;
+            if (matchCriteria != null) {
+                tiles = Tiles.Where(matchCriteria).ToArray();
+            }
+            return tiles.ElementAt(new Random().Next(0, tiles.Length - 1));
         }
 
         

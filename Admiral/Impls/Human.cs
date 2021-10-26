@@ -7,33 +7,50 @@ namespace BattleshipsAda
     {
         private const string UNPLACED = "[_]";
         private const string PLACED = "[x]";
-        
+        private const string EXIT = "exit";
+        private const string NAME = "Player";
+
         private readonly Random _random;
         private readonly Fleet _fleet;
-        private readonly string[] _setupItems = { "Place Ship", "Unplace Ship", "Autoplace All", "Autoplace Remaining", "Reset" };
+        private readonly string[] _setupItems = {
+            "Place Ship",
+            "Unplace Ship",
+            "Autoplace All",
+            "Autoplace Remaining",
+            "Reset"
+        };
+        private readonly string[] _errors = {
+            "Invalid Coordinates!",
+            "Tile not found!",
+            "Coordinates already attacked!"
+        };
+
+        private static readonly Func<Board.Tile, bool> FreeTileCriteria = tile => tile.Section == null;
         
+        public string Name { get; }
         public Board Board { get; }
         public Board TargetBoard { get; }
         
-        public Human(Tuple<int, int> boardSize) {
-            Board = new Board(boardSize, "[Human] Board");
-            TargetBoard = new Board(boardSize, "[Human] Target Board");
+        public Human(Tuple<int, int> boardSize, string name = null) {
+            Board = new Board(boardSize, $"{Name} Board");
+            TargetBoard = new Board(boardSize, $"{Name} Target Board");
             _fleet = new Fleet(this);
             _random = new Random();
+            Name = name ?? NAME;
         }
 
         public void SetupFleet() {
             var completedSetup = false;
             while (!completedSetup) {
-                Console.Clear();
-                Board.Render();
+                Board.Render(true);
                 Console.WriteLine("Fleet Setup:");
                 Utilities.OutputList(_setupItems);
 
-                var enableContinue = _fleet.GetPlacedShips().Length == _fleet.Ships.Length;
-                if (enableContinue) Console.WriteLine("6: Start Game");
+                var maxIndex = _setupItems.Length + 1;
+                var enableContinue = _fleet.GetPlacedShips().Length == _fleet.Ships.Length;                        // Ensure all ships are placed before allowing 'Start Game'
+                if (enableContinue) Console.WriteLine($"{maxIndex}: Start Game");
                 
-                var choice = Utilities.RequestChoice(6);
+                var choice = Utilities.RequestChoice(maxIndex);
                 switch (choice) {
                     case 1:
                         PlacementMode();
@@ -52,70 +69,65 @@ namespace BattleshipsAda
                             _fleet.UnplaceShip(ship);
                         }
                         break;
-                    case 6:
-                        if (enableContinue) {
-                            completedSetup = true;
-                            break;
-                        }
-                        Console.WriteLine("You must place all ships before continuing.");
-                        break;
                 }
+                if (choice == maxIndex && enableContinue) completedSetup = true;                                        // Handle 'Start Game' (can't use non-const as switch case)
+                else Console.WriteLine("You must place all ships before continuing.");
             }
         }
         
-        public void DoTurn() {
-            throw new NotImplementedException();
+        public Tuple<int, int> RequestAttackCoords() {
+            TargetBoard.Render(true);
+            Board.Render();
+            return GetTileAsInput(TargetBoard)?.Coords;
         }
         
         public bool IsDefeated() {
             return _fleet.DestroyedShips == _fleet.Ships.Length;
         }
 
-        public void AttackTile(Board.Tile tile) {
-            throw new NotImplementedException();
-        }
-
-        public Board.Tile GetTileAsInput() {
-            var tileInvalidMsg = false;
-            var coordInvalidMsg = false;
+        private Board.Tile GetTileAsInput(Board board) {
+            var errorMsgIndex = -1;
             Board.Tile tile = null;
 
             while (tile == null) {
-                Console.Clear();
-                Board.Render();
                 Console.WriteLine("Enter 'exit' to cancel");
-                if (tileInvalidMsg) Console.WriteLine("Tile not found!");
-                if (coordInvalidMsg) Console.WriteLine("Invalid Coordinates!"); 
-                tileInvalidMsg = false;
-                coordInvalidMsg = false;
+                if (errorMsgIndex > -1) Console.WriteLine(_errors[errorMsgIndex]);
+                errorMsgIndex = -1;
                 
                 var inX = Utilities.RequestInput("X Coordinate: ").ToLower();
-                if (inX == "exit") break;
-                var x = Coordinates.GetLetterCoordValue(inX);
+                if (inX == EXIT) break;
+                var x = Coordinates.GetValueFromLetter(inX);
                 
                 var inY = Utilities.RequestInput("Y Coordinate: ").ToLower();
-                if (inY == "exit") break;
+                if (inY == EXIT) break;
                 var validY = int.TryParse(inY, out var y);
                 
                 if (x == -1 || !validY) {
-                    coordInvalidMsg = true;
+                    errorMsgIndex = 0;
                     continue;
                 }
 
-                tile = Board.GetTileAt(new Tuple<int, int>(x, y));
-                if (tile == null) tileInvalidMsg = true;
+                tile = board.GetTileAt(new Tuple<int, int>(x, y - 1));                                            // Minus one since we display the Y-axis starting from 1
+                if (tile != null) {
+                    if (tile.Attacked == TileState.None) {
+                        continue;
+                    }
+                    tile = null;
+                    errorMsgIndex = 2;
+                }
+                else errorMsgIndex = 1;
             }
             return tile;
         }
 
-        public void AutoPlaceShips(bool allShips = true) {
+        private void AutoPlaceShips(bool allShips = true) {
             var ships = allShips ? _fleet.Ships : _fleet.GetUnplacedShips();
             foreach (var ship in ships) {
                 _fleet.UnplaceShip(ship);                                                                               // Optimises tile selection for smaller boards 
                 var placed = false;
                 while (!placed) {
                     var orientation = RandomOrientation();
-                    placed = _fleet.PlaceShip(ship, Board.GetRandomFreeTile(), orientation);
+                    placed = _fleet.PlaceShip(ship, Board.GetRandomTile(FreeTileCriteria), orientation);
                 }
             }
         }
@@ -123,8 +135,7 @@ namespace BattleshipsAda
         private void PlacementMode() {
             while (true) {
                 var ships = _fleet.Ships;
-                Console.Clear();
-                Board.Render();
+                Board.Render(true);
                 Utilities.OutputList(ships.Select(ship => {                                                       // List output formatting to show if a ship is (un)placed
                     var icon = ship.Placed ? PLACED : UNPLACED;
                     return $"{ship.Name,-15} {icon}";
@@ -134,7 +145,8 @@ namespace BattleshipsAda
                 var shipChoice = Utilities.RequestChoice(ships.Length);
                 if (shipChoice == 0) return;
                 
-                var tile = GetTileAsInput();
+                Board.Render(true);
+                var tile = GetTileAsInput(Board);
                 if (tile == null) continue;
                 
                 Utilities.OutputList(new [] { "Horizontal", "Vertical" });
@@ -148,12 +160,11 @@ namespace BattleshipsAda
 
         private void ResetShipMode() {
             while (true) {
-                Console.Clear();
-                Board.Render();
+                Board.Render(true);
                 Console.WriteLine("Enter 'exit' to cancel");
                 
                 var input = Utilities.RequestInput("Enter ship initial/name: ").ToLower();
-                if (input == "exit") return;
+                if (input == EXIT) return;
                 
                 foreach (var ship in _fleet.GetPlacedShips()) {
                     var shipName = ship.Name.ToLower();
