@@ -7,8 +7,8 @@ namespace BattleshipsAda
         private readonly ShipInfo _info;
 
         private int _damageValue;
-        private bool _destroyed;
 
+        public bool Destroyed { get; private set; }
         public Orientation Orientation { get; set; }
         public int Length => _info.Length;
         public string Name => _info.Name;
@@ -34,9 +34,9 @@ namespace BattleshipsAda
         }
 
         private void UpdateDamage() {
-            if (_destroyed) return;
+            if (Destroyed) return;
             if (_damageValue + 1 >= Length) {
-                _destroyed = true;
+                Destroyed = true;
                 OnDestroyedEvent?.Invoke(this, EventArgs.Empty);
             }
             else {

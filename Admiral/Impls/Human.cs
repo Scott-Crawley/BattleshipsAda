@@ -5,13 +5,10 @@ namespace BattleshipsAda
 {
     public class Human : IAdmiral
     {
-        private const string UNPLACED = "[_]";
-        private const string PLACED = "[x]";
         private const string EXIT = "exit";
         private const string NAME = "Player";
 
         private readonly Random _random;
-        private readonly Fleet _fleet;
         private readonly string[] _setupItems = {
             "Place Ship",
             "Unplace Ship",
@@ -30,13 +27,14 @@ namespace BattleshipsAda
         public string Name { get; }
         public Board Board { get; }
         public Board TargetBoard { get; }
-        
+        public Fleet Fleet { get; }
+
         public Human(Tuple<int, int> boardSize, string name = null) {
+            Name = name ?? NAME;
             Board = new Board(boardSize, $"{Name} Board");
             TargetBoard = new Board(boardSize, $"{Name} Target Board");
-            _fleet = new Fleet(this);
+            Fleet = new Fleet(this);
             _random = new Random();
-            Name = name ?? NAME;
         }
 
         public void SetupFleet() {
@@ -47,7 +45,7 @@ namespace BattleshipsAda
                 Utilities.OutputList(_setupItems);
 
                 var maxIndex = _setupItems.Length + 1;
-                var enableContinue = _fleet.GetPlacedShips().Length == _fleet.Ships.Length;                        // Ensure all ships are placed before allowing 'Start Game'
+                var enableContinue = Fleet.GetPlacedShips().Length == Fleet.Ships.Length;                        // Ensure all ships are placed before allowing 'Start Game'
                 if (enableContinue) Console.WriteLine($"{maxIndex}: Start Game");
                 
                 var choice = Utilities.RequestChoice(maxIndex);
@@ -65,8 +63,8 @@ namespace BattleshipsAda
                         AutoPlaceShips(false);
                         break;
                     case 5:
-                        foreach (var ship in _fleet.GetPlacedShips()) {
-                            _fleet.UnplaceShip(ship);
+                        foreach (var ship in Fleet.GetPlacedShips()) {
+                            Fleet.UnplaceShip(ship);
                         }
                         break;
                 }
@@ -82,7 +80,7 @@ namespace BattleshipsAda
         }
         
         public bool IsDefeated() {
-            return _fleet.DestroyedShips == _fleet.Ships.Length;
+            return Fleet.DestroyedShips == Fleet.Ships.Length;
         }
 
         private Board.Tile GetTileAsInput(Board board) {
@@ -121,23 +119,23 @@ namespace BattleshipsAda
         }
 
         private void AutoPlaceShips(bool allShips = true) {
-            var ships = allShips ? _fleet.Ships : _fleet.GetUnplacedShips();
+            var ships = allShips ? Fleet.Ships : Fleet.GetUnplacedShips();
             foreach (var ship in ships) {
-                _fleet.UnplaceShip(ship);                                                                               // Optimises tile selection for smaller boards 
+                Fleet.UnplaceShip(ship);                                                                               // Optimises tile selection for smaller boards 
                 var placed = false;
                 while (!placed) {
                     var orientation = RandomOrientation();
-                    placed = _fleet.PlaceShip(ship, Board.GetRandomTile(FreeTileCriteria), orientation);
+                    placed = Fleet.PlaceShip(ship, Board.GetRandomTile(FreeTileCriteria), orientation);
                 }
             }
         }
 
         private void PlacementMode() {
             while (true) {
-                var ships = _fleet.Ships;
+                var ships = Fleet.Ships;
                 Board.Render(true);
                 Utilities.OutputList(ships.Select(ship => {                                                       // List output formatting to show if a ship is (un)placed
-                    var icon = ship.Placed ? PLACED : UNPLACED;
+                    var icon = ship.Placed ? Utilities.PLACED_STR : Utilities.UNPLACED_STR;
                     return $"{ship.Name,-15} {icon}";
                 }));
                 Console.WriteLine("0: Cancel");
@@ -154,7 +152,7 @@ namespace BattleshipsAda
                 var oriChoice = Utilities.RequestChoice(2);
                 var orientation = oriChoice == 1 ? Orientation.Horizontal : Orientation.Vertical;
 
-                _fleet.PlaceShip(ships[shipChoice - 1], tile, orientation);
+                Fleet.PlaceShip(ships[shipChoice - 1], tile, orientation);
             }
         }
 
@@ -166,10 +164,10 @@ namespace BattleshipsAda
                 var input = Utilities.RequestInput("Enter ship initial/name: ").ToLower();
                 if (input == EXIT) return;
                 
-                foreach (var ship in _fleet.GetPlacedShips()) {
+                foreach (var ship in Fleet.GetPlacedShips()) {
                     var shipName = ship.Name.ToLower();
                     if (input == shipName || input[0] == shipName[0]) {
-                        _fleet.UnplaceShip(ship);
+                        Fleet.UnplaceShip(ship);
                     }
                 }
             }

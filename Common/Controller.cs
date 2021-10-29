@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace BattleshipsAda
 {
@@ -21,10 +20,14 @@ namespace BattleshipsAda
         };
         private readonly IAdmiral[] _admirals;
         
+        // Game Properties
         private Tuple<int, int> _boardSize;
         private int _turn;
         private bool _showAiBoards;
-        
+        private bool _quit;
+        private bool _salvo;
+        private bool _mines;
+
         public List<ShipInfo> ShipTypes { get; private set; }
         public bool Setup { get; private set; }
         
@@ -51,14 +54,56 @@ namespace BattleshipsAda
             }
         }
 
-        public void Play() {
-            _turn = 0;
-            int admiralId;
-            int enemyId;
+        private void DoTurn(IAdmiral admiral, int enemyId) {
             while (true) {
+                var coords = admiral.RequestAttackCoords();
+                if (coords == null) {
+                    Console.WriteLine("NO TARGET: Skipping turn...");
+                    break;
+                }
+                var formattedCoords = $"{{{Coordinates.GetLetterFromValue(coords.Item1)}, {coords.Item2 + 1}}}";
+                var enemyTile = _admirals[enemyId].Board.GetTileAt(coords);
+                var tBoardTile = admiral.TargetBoard.GetTileAt(coords);
+                    
+                string message; 
+                TileState tileState;
+                if (enemyTile.Section != null) {
+                    tileState = TileState.Hit;
+                    enemyTile.Section.Damaged = true;
+                    message = $"HIT: Vessel at {formattedCoords} sustained damaged!";
+                    if (enemyTile.Section.Ship.Destroyed) {
+                        message = $"SUNK: Vessel at {formattedCoords} has been sunk!";
+                    }
+                }
+                else {
+                    tileState = TileState.Miss;
+                    message = $"MISS: No target at {formattedCoords}!";
+                }
+                enemyTile.Attacked = tileState;
+                tBoardTile.Attacked = tileState;
+                Console.WriteLine(message);
+                break;
+            }
+        }
+
+        private void DoSalvoTurn(IAdmiral admiral, int enemyId) {
+            foreach (var ship in admiral.Fleet.Ships) {                                                                 // For each non-destroyed ship, allow attacking a tile
+                if (ship.Destroyed) continue;
+                Console.WriteLine($"SHIP: {ship.Name} prepared to fire...");
+                DoTurn(admiral, enemyId);
+            }
+        }
+
+        public void Play() {
+            var enemyId   = 0;
+            var admiralId = 0;
+
+            _quit  = false;
+            _turn = 0;
+            while (!_quit) {
                 _turn++;
                 admiralId = _turn % 2 == 0 ? 1 : 0;                                                                     // If turn is even, player #2's go
-                enemyId = admiralId == 0 ? 1 : 0;
+                enemyId   = admiralId == 0 ? 1 : 0;
                 
                 var admiral = _admirals[admiralId];
                 if (admiral.IsDefeated()) break;
@@ -71,35 +116,17 @@ namespace BattleshipsAda
                     if (_admirals[0].GetType() == typeof(Computer)) _admirals[0].Board.Render();
                     if (_admirals[1].GetType() == typeof(Computer)) _admirals[1].Board.Render();
                 }
-                
-                while (true) {
-                    var coords = admiral.RequestAttackCoords();
-                    if (coords == null) {
-                        Console.WriteLine("NO TARGET: Skipping turn...");
-                        break;
-                    }
-                    var formattedCoords = $"{{{Coordinates.GetLetterFromValue(coords.Item1)}, {coords.Item2 + 1}}}";
-                    var enemyTile = _admirals[enemyId].Board.GetTileAt(coords);
-                    var tBoardTile = admiral.TargetBoard.GetTileAt(coords);
-                    
-                    string message; 
-                    TileState tileState;
-                    if (enemyTile.Section != null) {
-                        tileState = TileState.Hit;
-                        enemyTile.Section.Damaged = true;
-                        message = $"HIT: Vessel at {formattedCoords} sustained damaged!";
-                    }
-                    else {
-                        tileState = TileState.Miss;
-                        message = $"MISS: No target at {formattedCoords}!";
-                    }
-                    enemyTile.Attacked = tileState;
-                    tBoardTile.Attacked = tileState;
-                    Console.WriteLine(message);
-                    break;
-                }
 
-                Utilities.RequestInput("Press any key to end turn...");
+                if (_salvo) DoSalvoTurn(admiral, enemyId);
+                else DoTurn(admiral, enemyId);
+                
+                var input = Utilities.RequestInput("Press any key to end turn... \nType 'exit' to quit: ");
+                if (input.ToLower() == "exit") _quit = true;
+            }
+
+            if (_quit) {
+                Console.WriteLine("Game cancelled");
+                return;
             }
             Console.WriteLine($"{_admirals[admiralId].Name} was defeated!");
             Console.WriteLine($"{_admirals[enemyId].Name} won!");
@@ -121,18 +148,18 @@ namespace BattleshipsAda
                     case 1:
                         _admirals[0] = new Human(_boardSize);
                         _admirals[1] = new Computer(_boardSize);
-                        Setup = true;
+                        SubModePrompt();
                         break;
                     case 2:
                         _admirals[0] = new Computer(_boardSize, "Computer #1");
                         _admirals[1] = new Computer(_boardSize, "Computer #2");
+                        SubModePrompt();
                         _showAiBoards = true;
-                        Setup = true;
                         break;
                     case 3:
                         _admirals[0] = new Human(_boardSize, "Player #1");
                         _admirals[1] = new Human(_boardSize, "Player #2");
-                        Setup = true;
+                        SubModePrompt();
                         break;
                     case 4:
                         LoadConfiguration();
@@ -142,6 +169,31 @@ namespace BattleshipsAda
                 }
             }
             return true;
+        }
+
+        private void SubModePrompt() {
+            while (true) {
+                Console.Clear();
+                Console.WriteLine("Sub-Mode Selection:");
+
+                var salvoOption = "Salvo  " + (_salvo ? Utilities.PLACED_STR : Utilities.UNPLACED_STR);
+                var minesOption = "Mines  " + (_mines ? Utilities.PLACED_STR : Utilities.UNPLACED_STR);
+                var subModeOptions = new[] { salvoOption, minesOption, "Done" };
+                Utilities.OutputList(subModeOptions);
+                
+                var choice = Utilities.RequestChoice(3);
+                switch (choice) {
+                    case 1:
+                        _salvo = !_salvo;
+                        break;
+                    case 2:
+                        _mines = !_mines;
+                        break;
+                    case 3:
+                        Setup = true;
+                        return;
+                }
+            }
         }
     }
 }

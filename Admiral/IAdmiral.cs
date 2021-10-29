@@ -8,6 +8,7 @@ namespace BattleshipsAda
         
         public Board Board { get; }
         public Board TargetBoard { get; }
+        public Fleet Fleet { get; }
 
         public abstract Tuple<int, int> RequestAttackCoords();
 
