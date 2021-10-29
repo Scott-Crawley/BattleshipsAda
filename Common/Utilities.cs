@@ -5,6 +5,9 @@ namespace BattleshipsAda
 {
     public class Utilities
     {
+        public const string UNPLACED_STR = "[_]";
+        public const string PLACED_STR   = "[x]";
+        
         public static string RequestInput(string prompt) {
             Console.Write(prompt);
             return Console.ReadLine();
