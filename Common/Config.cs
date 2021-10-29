@@ -4,7 +4,7 @@ using System.IO;
 
 namespace BattleshipsAda
 {
-    public class Config
+    public static class Config
     {
         private const string CONFIG_FILE = "adaship_config.ini";
         private const string BOARD = "board";

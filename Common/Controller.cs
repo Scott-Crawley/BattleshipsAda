@@ -190,8 +190,8 @@ namespace BattleshipsAda
                 Console.Clear();
                 Console.WriteLine("Sub-Mode Selection:");
 
-                var salvoOption = "Salvo  " + (_salvo ? Utilities.PLACED_STR : Utilities.UNPLACED_STR);
-                var minesOption = "Mines  " + (_mines ? Utilities.PLACED_STR : Utilities.UNPLACED_STR);
+                var salvoOption = "Salvo  " + (_salvo ? Utilities.ENABLE_STR : Utilities.DISABLE_STR);
+                var minesOption = "Mines  " + (_mines ? Utilities.ENABLE_STR : Utilities.DISABLE_STR);
                 var subModeOptions = new[] { salvoOption, minesOption, "Done" };
                 Utilities.OutputList(subModeOptions);
                 

@@ -134,7 +134,7 @@ namespace BattleshipsAda
                 var ships = Fleet.Ships;
                 Board.Render(true);
                 Utilities.OutputList(ships.Select(ship => {                                                       // List output formatting to show if a ship is (un)placed
-                    var icon = ship.Placed ? Utilities.PLACED_STR : Utilities.UNPLACED_STR;
+                    var icon = ship.Placed ? Utilities.ENABLE_STR : Utilities.DISABLE_STR;
                     return $"{ship.Name,-15} {icon}";
                 }));
                 Console.WriteLine("0: Cancel");

@@ -3,10 +3,10 @@ using System.Collections.Generic;
 
 namespace BattleshipsAda
 {
-    public class Utilities
+    public static class Utilities
     {
-        public const string UNPLACED_STR = "[_]";
-        public const string PLACED_STR   = "[x]";
+        public const string DISABLE_STR = "[_]";
+        public const string ENABLE_STR  = "[x]";
         public const string EXIT = "exit";
         public const string SKIP = "skip";
         

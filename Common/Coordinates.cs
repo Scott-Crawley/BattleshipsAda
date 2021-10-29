@@ -2,7 +2,7 @@
 
 namespace BattleshipsAda
 {
-    public class Coordinates
+    public static class Coordinates
     {
         public const string ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         
