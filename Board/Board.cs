@@ -101,29 +101,46 @@ namespace BattleshipsAda
         public void Render(bool clear = false) {
             if (clear) Console.Clear();
             Console.WriteLine();
-            Console.WriteLine(_boardName.PadLeft(_boardName.Length + (_size.Item1 * 3 / 4) + _size.Item1 / 2));         // Centre is calculated as this somehow ¯\_(ツ)_/¯
+            Console.WriteLine(_boardName.PadLeft((_boardName.Length + (_size.Item1 * 3 / 4) + _size.Item1) / 2));       // Centre is calculated as this somehow ¯\_(ツ)_/¯
             
             var tileNo = 0;
             for (var row = _size.Item2; row > 0; row--) {                                                           // Decrement to get ascending Y-axis
-                var rowStr = $"{row,3}";
-                for (var column = 0; column < _size.Item1; column++) {
+                Console.Write($"{row,3}");
+                
+                for (var col = 0; col < _size.Item1; col++) {
                     var section  = Tiles[tileNo].Section;
-                    var shipChar = Tiles[tileNo].Attacked switch {
-                        TileState.Hit => 'X',                                                                           // HIT
-                        TileState.Miss => 'O',                                                                          // MISS
-                        _ => '.'                                                                                        // Default
-                    };
-                    if (section != null) {                                                                              // Section always null on Target Boards; won't run (good!)
-                        shipChar = section.Damaged ? 'X' : section.Ship.Name[0];                                        // If a ship section, and not damaged, use the initial
+                    
+                    char shipChar;
+                    ConsoleColor colour;
+                    switch (Tiles[tileNo].Attacked) {
+                        case TileState.Hit:
+                            shipChar = 'X';
+                            colour = ConsoleColor.Red;
+                            break;
+                        case TileState.Miss:
+                            shipChar = '-';
+                            colour = ConsoleColor.DarkCyan;
+                            break;
+                        default:
+                            shipChar = '.';
+                            colour = ConsoleColor.DarkGray;
+                            break;
                     }
-                    rowStr += $"{shipChar,3}";
+                    if (section != null) {                                                                              // Section always null on Target Boards; won't run (good!)
+                        shipChar = section.Damaged ? 'X' : section.Ship.Name[0];                                        // If a section and not damaged, use the ship's initial
+                        colour = section.Damaged ? ConsoleColor.Red : ConsoleColor.White;
+                    }
+
+                    Console.ForegroundColor = colour;
+                    Console.Write($"{shipChar,3}");
+                    Console.ResetColor();
                     tileNo++;
                 }
-                Console.WriteLine(rowStr);
+                Console.WriteLine();
             }
+            
             Console.WriteLine(GenerateXAxis());
-            if (_warnSize) Console.WriteLine("WARN: Boards over 30x30 may introduce graphical issues");                 // It [works] up to 701x701; [usability] not guaranteed
-            Console.WriteLine();
+            if (_warnSize) Console.WriteLine("WARN: Boards over 30x30 may introduce graphical issues\n");               // It [works] up to 701x701; [usability] not guaranteed
         }
 
         public Tile[] FindContinuousTilesAt(Tile startTile, Orientation orientation, int numTiles) {

@@ -5,7 +5,6 @@ namespace BattleshipsAda
 {
     public class Human : IAdmiral
     {
-        private const string EXIT = "exit";
         private const string NAME = "Player";
 
         private readonly Random _random;
@@ -88,16 +87,16 @@ namespace BattleshipsAda
             Board.Tile tile = null;
 
             while (tile == null) {
-                Console.WriteLine("Enter 'exit' to cancel");
+                Console.WriteLine("Enter 'skip' to skip attack");
                 if (errorMsgIndex > -1) Console.WriteLine(_errors[errorMsgIndex]);
                 errorMsgIndex = -1;
                 
                 var inX = Utilities.RequestInput("X Coordinate: ").ToLower();
-                if (inX == EXIT) break;
+                if (inX == Utilities.SKIP) break;
                 var x = Coordinates.GetValueFromLetter(inX);
                 
                 var inY = Utilities.RequestInput("Y Coordinate: ").ToLower();
-                if (inY == EXIT) break;
+                if (inY == Utilities.SKIP) break;
                 var validY = int.TryParse(inY, out var y);
                 
                 if (x == -1 || !validY) {
@@ -121,7 +120,7 @@ namespace BattleshipsAda
         private void AutoPlaceShips(bool allShips = true) {
             var ships = allShips ? Fleet.Ships : Fleet.GetUnplacedShips();
             foreach (var ship in ships) {
-                Fleet.UnplaceShip(ship);                                                                               // Optimises tile selection for smaller boards 
+                Fleet.UnplaceShip(ship);                                                                                // Optimises tile selection for smaller boards 
                 var placed = false;
                 while (!placed) {
                     var orientation = RandomOrientation();
@@ -162,7 +161,7 @@ namespace BattleshipsAda
                 Console.WriteLine("Enter 'exit' to cancel");
                 
                 var input = Utilities.RequestInput("Enter ship initial/name: ").ToLower();
-                if (input == EXIT) return;
+                if (input == Utilities.EXIT) return;
                 
                 foreach (var ship in Fleet.GetPlacedShips()) {
                     var shipName = ship.Name.ToLower();

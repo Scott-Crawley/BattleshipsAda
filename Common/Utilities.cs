@@ -7,6 +7,8 @@ namespace BattleshipsAda
     {
         public const string UNPLACED_STR = "[_]";
         public const string PLACED_STR   = "[x]";
+        public const string EXIT = "exit";
+        public const string SKIP = "skip";
         
         public static string RequestInput(string prompt) {
             Console.Write(prompt);

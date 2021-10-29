@@ -55,9 +55,9 @@ namespace BattleshipsAda
         }
 
         private void DoTurn(IAdmiral admiral, int enemyId) {
-            while (true) {
+            while (!_quit) {
                 var coords = admiral.RequestAttackCoords();
-                if (coords == null) {
+                if (coords == null || _quit) {
                     Console.WriteLine("NO TARGET: Skipping turn...");
                     break;
                 }
@@ -87,10 +87,23 @@ namespace BattleshipsAda
         }
 
         private void DoSalvoTurn(IAdmiral admiral, int enemyId) {
-            foreach (var ship in admiral.Fleet.Ships) {                                                                 // For each non-destroyed ship, allow attacking a tile
+            var ships = admiral.Fleet.Ships;
+            var aliveShips = ships.Length - admiral.Fleet.DestroyedShips;
+            var shipsFired = 0;
+            foreach (var ship in ships) {                                                                               // For each non-destroyed ship, allow attacking a tile
+                if (_quit || _admirals[enemyId].IsDefeated()) break;
                 if (ship.Destroyed) continue;
-                Console.WriteLine($"SHIP: {ship.Name} prepared to fire...");
+                
                 DoTurn(admiral, enemyId);
+                Console.WriteLine($"SHIP: {ship.Name} completed attack order!");
+                shipsFired++;
+
+                if (shipsFired == aliveShips) break;                                                                    // Don't ask for input if last ship
+                if (admiral.GetType() == typeof(Computer)) continue;                                                    // Don't ask for input if Computer
+                
+                var input = Utilities.RequestInput("\nPress any key to order next ship... " +
+                                                                "\nType 'exit' to quit: ");
+                if (input.ToLower() == Utilities.EXIT) _quit = true;
             }
         }
 
@@ -105,23 +118,24 @@ namespace BattleshipsAda
                 admiralId = _turn % 2 == 0 ? 1 : 0;                                                                     // If turn is even, player #2's go
                 enemyId   = admiralId == 0 ? 1 : 0;
                 
-                var admiral = _admirals[admiralId];
-                if (admiral.IsDefeated()) break;
-
                 Console.Clear();
                 Console.WriteLine($"Turn: {_turn}");
                 Console.WriteLine($"Player #{admiralId + 1}'s turn...");
-
+                
                 if (_showAiBoards) {
                     if (_admirals[0].GetType() == typeof(Computer)) _admirals[0].Board.Render();
                     if (_admirals[1].GetType() == typeof(Computer)) _admirals[1].Board.Render();
                 }
-
+                
+                var admiral = _admirals[admiralId];
+                if (admiral.IsDefeated()) break;
+                
                 if (_salvo) DoSalvoTurn(admiral, enemyId);
                 else DoTurn(admiral, enemyId);
-                
-                var input = Utilities.RequestInput("Press any key to end turn... \nType 'exit' to quit: ");
-                if (input.ToLower() == "exit") _quit = true;
+
+                if (_quit) break;
+                var input = Utilities.RequestInput("\nPress any key to end turn... \nType 'exit' to quit: ");
+                if (input.ToLower() == Utilities.EXIT) _quit = true;
             }
 
             if (_quit) {
