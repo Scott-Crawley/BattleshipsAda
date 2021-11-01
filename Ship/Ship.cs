@@ -9,7 +9,7 @@ namespace BattleshipsAda
         private int _damageValue;
 
         public bool Destroyed { get; private set; }
-        public Orientation Orientation { get; set; }
+        public Direction Direction { get; set; }
         public int Length => _info.Length;
         public string Name => _info.Name;
         public Section[] Sections { get; }
@@ -20,9 +20,9 @@ namespace BattleshipsAda
         public delegate void DestroyedStatusHandler(object sender, EventArgs e);
         public event DestroyedStatusHandler OnDestroyedEvent;                                                           // See 'Fleet' constructor
 
-        public Ship(ShipInfo info, Orientation orientation = Orientation.None) {
+        public Ship(ShipInfo info, Direction direction = Direction.None) {
             _info = info;
-            Orientation = orientation;
+            Direction = direction;
             Sections = new Section[Length];
             PopulateSections();
         }

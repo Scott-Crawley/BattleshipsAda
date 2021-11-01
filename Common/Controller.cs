@@ -54,52 +54,61 @@ namespace BattleshipsAda
             }
         }
 
-        private void DoTurn(IAdmiral admiral, int enemyId) {
+        private void DoTurn(IAdmiral attacker, IAdmiral defender) {
             while (!_quit) {
-                var coords = admiral.RequestAttackCoords();
+                var coords = attacker.RequestAttackCoords();
                 if (coords == null || _quit) {
                     Console.WriteLine("NO TARGET: Skipping turn...");
                     break;
                 }
                 var formattedCoords = $"{{{Coordinates.GetLetterFromValue(coords.Item1)}, {coords.Item2 + 1}}}";
-                var enemyTile = _admirals[enemyId].Board.GetTileAt(coords);
-                var tBoardTile = admiral.TargetBoard.GetTileAt(coords);
-                    
+                var defenderTile = defender.Board.GetTileAt(coords);
+                var attackerTgrt = attacker.TargetBoard.GetTileAt(coords);
+                
                 string message; 
                 TileState tileState;
-                if (enemyTile.Section != null) {
+                var mine = defenderTile.Mine;
+                var section = defenderTile.Section;
+                
+                if (section != null) {
+                    var ship = section.Ship;
                     tileState = TileState.Hit;
-                    enemyTile.Section.Damaged = true;
-                    message = $"HIT: Vessel at {formattedCoords} sustained damaged!";
-                    if (enemyTile.Section.Ship.Destroyed) {
-                        message = $"SUNK: Vessel at {formattedCoords} has been sunk!";
-                    }
+                    section.Damaged = true;
+                    message = ship.Destroyed
+                        ? $"SUNK: {defender.Name}'s {ship.Name} at {formattedCoords} has been sunk!"
+                        : $"HIT : {defender.Name}'s {ship.Name} at {formattedCoords} sustained damaged!";
+                }
+                else if (mine != null && !mine.Exploded) {
+                    defender.Board.ExplodeMine(defenderTile);
+                    tileState = TileState.Hit;
+                    message = $"MINE: A naval mine exploded at {formattedCoords}; damaging all adjacent tiles!";
                 }
                 else {
                     tileState = TileState.Miss;
                     message = $"MISS: No target at {formattedCoords}!";
                 }
-                enemyTile.Attacked = tileState;
-                tBoardTile.Attacked = tileState;
+                defenderTile.Attacked = tileState;
+                attackerTgrt.Attacked = tileState;
                 Console.WriteLine(message);
                 break;
             }
         }
 
-        private void DoSalvoTurn(IAdmiral admiral, int enemyId) {
-            var ships = admiral.Fleet.Ships;
-            var aliveShips = ships.Length - admiral.Fleet.DestroyedShips;
+        private void DoSalvoTurn(IAdmiral attacker, IAdmiral defender) {
+            var ships = attacker.Fleet.Ships;
+            var aliveShips = ships.Length - attacker.Fleet.DestroyedShips;
             var shipsFired = 0;
+            
+            Console.WriteLine($"FLEET: Ships available: {aliveShips}\n");
             foreach (var ship in ships) {                                                                               // For each non-destroyed ship, allow attacking a tile
-                if (_quit || _admirals[enemyId].IsDefeated()) break;
+                if (_quit || defender.IsDefeated()) break;
                 if (ship.Destroyed) continue;
                 
-                DoTurn(admiral, enemyId);
-                Console.WriteLine($"SHIP: {ship.Name} completed attack order!");
+                DoTurn(attacker, defender);
                 shipsFired++;
 
                 if (shipsFired == aliveShips) break;                                                                    // Don't ask for input if last ship
-                if (admiral.GetType() == typeof(Computer)) continue;                                                    // Don't ask for input if Computer
+                if (attacker.GetType() == typeof(Computer)) continue;                                                   // Don't ask for input if Computer
                 
                 var input = Utilities.RequestInput("\nPress any key to order next ship... " +
                                                                 "\nType 'exit' to quit: ");
@@ -108,30 +117,30 @@ namespace BattleshipsAda
         }
 
         public void Play() {
-            var enemyId   = 0;
-            var admiralId = 0;
+            var defenderId = 0;
+            var attackerId = 0;
 
-            _quit  = false;
+            _quit = false;
             _turn = 0;
             while (!_quit) {
                 _turn++;
-                admiralId = _turn % 2 == 0 ? 1 : 0;                                                                     // If turn is even, player #2's go
-                enemyId   = admiralId == 0 ? 1 : 0;
+                attackerId = _turn % 2 == 0 ? 1 : 0;                                                                    // If turn is even, player #2's go
+                defenderId = attackerId == 0 ? 1 : 0;
+                var attacker = _admirals[attackerId];
+                var defender = _admirals[defenderId];
                 
                 Console.Clear();
-                Console.WriteLine($"Turn: {_turn}");
-                Console.WriteLine($"Player #{admiralId + 1}'s turn...");
-                
                 if (_showAiBoards) {
                     if (_admirals[0].GetType() == typeof(Computer)) _admirals[0].Board.Render();
                     if (_admirals[1].GetType() == typeof(Computer)) _admirals[1].Board.Render();
                 }
                 
-                var admiral = _admirals[admiralId];
-                if (admiral.IsDefeated()) break;
+                Console.WriteLine($"Turn: [{_turn}]");
+                Console.WriteLine($"{attacker.Name} is attacking...");
                 
-                if (_salvo) DoSalvoTurn(admiral, enemyId);
-                else DoTurn(admiral, enemyId);
+                if (attacker.IsDefeated()) break;
+                if (_salvo) DoSalvoTurn(attacker, defender);
+                else DoTurn(attacker, defender);
 
                 if (_quit) break;
                 var input = Utilities.RequestInput("\nPress any key to end turn... \nType 'exit' to quit: ");
@@ -142,14 +151,15 @@ namespace BattleshipsAda
                 Console.WriteLine("Game cancelled");
                 return;
             }
-            Console.WriteLine($"{_admirals[admiralId].Name} was defeated!");
-            Console.WriteLine($"{_admirals[enemyId].Name} won!");
+            Console.WriteLine($"{_admirals[attackerId].Name} was defeated!");
+            Console.WriteLine($"{_admirals[defenderId].Name} won!");
         }
 
         private void GameSetup() {
             if (!InitialiseGameMode()) return;
             _admirals[0].SetupFleet();
             _admirals[1].SetupFleet();
+            if (_mines) PlaceMines();
         }
 
         private bool InitialiseGameMode() {
@@ -157,7 +167,7 @@ namespace BattleshipsAda
                 Console.Clear();
                 Console.WriteLine("Mode Selection:");
                 Utilities.OutputList(_modeItems);
-                var choice = Utilities.RequestChoice(4);
+                var choice = Utilities.RequestChoice(5);
                 switch (choice) {
                     case 1:
                         _admirals[0] = new Human(_boardSize);
@@ -207,6 +217,14 @@ namespace BattleshipsAda
                         Setup = true;
                         return;
                 }
+            }
+        }
+
+        private void PlaceMines() {
+            for (var i = 0; i < 5; i++) {
+                static bool MatchCriteria(Board.Tile tile) => tile.Section == null && tile.Mine == null;                // Local function for matchCriteria
+                _admirals[0].Board.GetRandomTile(MatchCriteria).Mine = new Board.Mine();
+                _admirals[1].Board.GetRandomTile(MatchCriteria).Mine = new Board.Mine();
             }
         }
     }

@@ -10,6 +10,7 @@ namespace BattleshipsAda
         private readonly int _totalSize;
         private readonly string _boardName;
         private readonly bool _warnSize;
+        private readonly Random _random;
 
         public Tile[] Tiles { get; }
 
@@ -21,6 +22,7 @@ namespace BattleshipsAda
                 _warnSize = true;
             }
             Tiles = new Tile[_totalSize];
+            _random = new Random();
             PopulateTiles();
         }
         
@@ -59,80 +61,114 @@ namespace BattleshipsAda
             return axisStr;
         }
         
-        private IEnumerable<Tile> GetTilesBetween(Tile startTile, Tile endTile, Orientation orientation) {
-            if (startTile == null || endTile == null || orientation == Orientation.None) return null;
+        private Tile GetNextTile(Direction direction, Tile centre) {
+            if (centre?.Coords == null) return null;
+            
+            var (x, y) = centre.Coords;
+            switch (direction) {
+                case Direction.Above:
+                    y += 1;
+                    break;
+                case Direction.Below:
+                    y -= 1;
+                    break;
+                case Direction.Left:
+                    x -= 1;
+                    break;
+                case Direction.Right:
+                    x += 1;
+                    break;
+            }
+            var tile = GetTileAt(new Tuple<int, int>(x, y));
+            return tile == centre ? null : tile;                                                                        // If we're returning 'centre', make it null 
+        }
+        
+        private IEnumerable<Tile> GetAdjacentTiles(Tile centre) {
+            var tiles = new List<Tile> {
+                GetNextTile(Direction.Left, centre),
+                GetNextTile(Direction.Right, centre)
+            };
+            var above = GetNextTile(Direction.Above, centre);
+            var below = GetNextTile(Direction.Below, centre);
+            
+            // Corners
+            var abLeft  = GetNextTile(Direction.Left, above);
+            var abRight = GetNextTile(Direction.Right, above);
+            var beLeft  = GetNextTile(Direction.Left, below);
+            var beRight = GetNextTile(Direction.Right, below);
+
+            tiles.AddRange(new[] { above, below, abLeft, abRight, beLeft, beRight });
+            return tiles;
+        }
+        
+        private IEnumerable<Tile> GetTilesBetween(Tile startTile, Tile endTile, Direction direction) {
+            if (startTile == null || endTile == null) return null;
+            if (!(direction == Direction.Horizontal || direction == Direction.Vertical)) return null;
             
             var tiles = new List<Tile>();
             var (startX, startY) = startTile.Coords;
             var (endX, endY)     = endTile.Coords;
 
-            var step = 1;
-            if (orientation == Orientation.Horizontal) {
-                if (startX > endX) {                                                                                    // endTile is to the left of startTile
-                    step = -1;
-                    for (var x = startX; endX <= x; x += step) {
-                        tiles.Add(GetTileAt(new Tuple<int, int>(x, startTile.Coords.Item2)));
-                    }
-                }
-                else {                                                                                                  // endTile is to the right of startTile
-                    for (var x = startX; endX >= x; x += step) {
-                        tiles.Add(GetTileAt(new Tuple<int, int>(x, startTile.Coords.Item2)));
-                    }
-                }
+            Direction stepDirection;
+            if (direction == Direction.Horizontal) {
+                stepDirection = startX > endX ? Direction.Left : Direction.Right;
             }
             else {
-                if (startY > endY) {                                                                                    // endTile is below startTile
-                    step = -1;
-                    for (var y = startY; endY <= y; y += step) {
-                        tiles.Add(GetTileAt(new Tuple<int, int>(startTile.Coords.Item1, y)));
-                    }
-                }
-                else {                                                                                                  // endTile is above startTile
-                    for (var y = startY; endY >= y; y += step) {
-                        tiles.Add(GetTileAt(new Tuple<int, int>(startTile.Coords.Item1, y)));
-                    }
-                }  
+                stepDirection = startY > endY ? Direction.Below : Direction.Above;
+            }
+
+            tiles.Add(startTile);                                                                                       // Make sure to add the starting tile
+            
+            var curTile = startTile;
+            while (curTile != endTile) {
+                curTile = GetNextTile(stepDirection, curTile);
+                tiles.Add(curTile);
             }
             return tiles.ToArray();
         }
-        
-        
+
         // ############### PUBLIC METHODS ############### //
         public void Render(bool clear = false) {
             if (clear) Console.Clear();
             Console.WriteLine();
-            Console.WriteLine(_boardName.PadLeft((_boardName.Length + (_size.Item1 * 3 / 4) + _size.Item1) / 2));       // Centre is calculated as this somehow ¯\_(ツ)_/¯
+            Console.WriteLine(_boardName.PadLeft((_boardName.Length + (_size.Item1 * 3 / 4) + _size.Item1) / 2));       // Centre is roughly calculated as this somehow ¯\_(ツ)_/¯
             
             var tileNo = 0;
             for (var row = _size.Item2; row > 0; row--) {                                                           // Decrement to get ascending Y-axis
                 Console.Write($"{row,3}");
                 
                 for (var col = 0; col < _size.Item1; col++) {
-                    var section  = Tiles[tileNo].Section;
+                    var tile = Tiles[tileNo];
+                    var section = tile.Section;
                     
-                    char shipChar;
+                    char boardChar;
                     ConsoleColor colour;
-                    switch (Tiles[tileNo].Attacked) {
+                    switch (tile.Attacked) {
                         case TileState.Hit:
-                            shipChar = 'X';
+                            boardChar = 'X';
                             colour = ConsoleColor.Red;
                             break;
                         case TileState.Miss:
-                            shipChar = '-';
+                            boardChar = '-';
                             colour = ConsoleColor.DarkCyan;
                             break;
                         default:
-                            shipChar = '.';
+                            boardChar = '.';
                             colour = ConsoleColor.DarkGray;
                             break;
                     }
                     if (section != null) {                                                                              // Section always null on Target Boards; won't run (good!)
-                        shipChar = section.Damaged ? 'X' : section.Ship.Name[0];                                        // If a section and not damaged, use the ship's initial
+                        boardChar = section.Damaged ? 'X' : section.Ship.Name[0];                                       // If a section and not damaged, use the ship's initial
                         colour = section.Damaged ? ConsoleColor.Red : ConsoleColor.White;
                     }
 
+                    if (tile.Mine != null) {
+                        boardChar = 'M';
+                        colour = tile.Mine.Exploded ? ConsoleColor.DarkRed : ConsoleColor.DarkYellow;
+                    }
+
                     Console.ForegroundColor = colour;
-                    Console.Write($"{shipChar,3}");
+                    Console.Write($"{boardChar,3}");
                     Console.ResetColor();
                     tileNo++;
                 }
@@ -140,19 +176,19 @@ namespace BattleshipsAda
             }
             
             Console.WriteLine(GenerateXAxis());
-            if (_warnSize) Console.WriteLine("WARN: Boards over 30x30 may introduce graphical issues\n");               // It [works] up to 701x701; [usability] not guaranteed
+            if (_warnSize) Console.WriteLine("WARN: Boards over 30x30 may introduce graphical issues\n");               // *Works* up to 701x701.. usability just not guaranteed
         }
 
-        public Tile[] FindContinuousTilesAt(Tile startTile, Orientation orientation, int numTiles) {
+        public Tile[] FindContinuousTilesAt(Tile startTile, Direction direction, int numTiles) {
             if (startTile == null)                     return null;
-            if (orientation == Orientation.None)       return null;
+            if (direction == Direction.None)           return null;
             if (numTiles < 0 || numTiles > _totalSize) return null;
 
             var (x, y) = startTile.Coords;
             var endTileCoords = new Tuple<int, int>(0, 0);
             for (var i = 0; i < 4; i++) {
-                if (orientation == Orientation.Vertical && (i == 0 || i == 1)) continue;                                // Don't calculate tiles for both orientations
-                if (orientation == Orientation.Horizontal && i == 2) break;
+                if (direction == Direction.Vertical && (i == 0 || i == 1)) continue;                                    // Don't calculate tiles for both orientations
+                if (direction == Direction.Horizontal && i == 2) break;
                 
                 endTileCoords = i switch {                                                                              // -1 to numTiles because of zero-based array index
                     0 => new Tuple<int, int>(x + numTiles - 1, y),                                                      // EAST
@@ -164,16 +200,16 @@ namespace BattleshipsAda
                 var endTile = GetTileAt(endTileCoords);
                 if (endTile?.Section != null) continue;                                                                 // Ensure endTile is free (and not null)
                 
-                var tiles = GetTilesBetween(startTile, endTile, orientation);
-                if (tiles != null && tiles.All(tile => tile != null && tile.Section == null)) {                 // Ensure tiles in-between are free
+                var tiles = GetTilesBetween(startTile, endTile, direction);
+                if (tiles != null && tiles.All(tile => tile != null && tile.Section == null)) {                 // Ensure tiles in-between are free (and not null)
                     return (Tile[]) tiles;
                 }
             }
             return null;
         }
 
-        public bool UnclaimTiles(Tile startTile, Tile endTile, Orientation orientation) {
-            var tiles = GetTilesBetween(startTile, endTile, orientation);
+        public bool UnclaimTiles(Tile startTile, Tile endTile, Direction direction) {
+            var tiles = GetTilesBetween(startTile, endTile, direction);
             var tileCount = 0;
             
             foreach (var tile in tiles) {
@@ -190,20 +226,38 @@ namespace BattleshipsAda
         }
 
         public Tile GetRandomTile(Func<Tile, bool> matchCriteria = null) {                                              // Predicate for custom matching criteria
-            var tiles = Tiles;
+            IEnumerable<Tile> tiles = Tiles;
             if (matchCriteria != null) {
-                tiles = Tiles.Where(matchCriteria).ToArray();
+                tiles = Tiles.Where(matchCriteria);
             }
-            return tiles.ElementAt(new Random().Next(0, tiles.Length - 1));
+            
+            return tiles.ElementAt(_random.Next(0, tiles.Count()));
         }
 
+        public void ExplodeMine(Tile centre) {
+            centre.Mine.Exploded = true;
+            var adjacentTiles = GetAdjacentTiles(centre);
+            foreach (var tile in adjacentTiles) {
+                if (tile == null) continue;
+                
+                var tileState = TileState.Miss;
+                if (tile.Mine != null && !tile.Mine.Exploded) {
+                    ExplodeMine(tile);                                                                                  // Chain explode if another mine - uses recursion
+                }
+
+                if (tile.Section != null) {
+                    tile.Section.Damaged = true;
+                    tileState = TileState.Hit;
+                }
+                tile.Attacked = tileState;
+            }
+        }
         
         // ############### BOARD.TILE ############### //
         public class Tile
         {
-            public Tile(Tuple<int,int> coords, Ship.Section shipSection = null) {
+            public Tile(Tuple<int,int> coords) {
                 Coords = coords;
-                Section = shipSection;
                 Attacked = TileState.None;
             }
 
@@ -212,6 +266,18 @@ namespace BattleshipsAda
             public TileState Attacked { get; set; }
 
             public Ship.Section Section { get; set; }
+            
+            public Mine Mine { get; set; }
+        }
+
+        // ############### BOARD.MINE ############### //
+        public class Mine
+        {
+            public Mine() {
+                Exploded = false;
+            }
+            
+            public bool Exploded { get; set; }
         }
     }
 }

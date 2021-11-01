@@ -51,8 +51,8 @@ namespace BattleshipsAda
             }
         }
 
-        private Orientation RandomOrientation() {
-            return _random.Next(1, 10) % 2 == 0 ? Orientation.Vertical : Orientation.Horizontal;
+        private Direction RandomOrientation() {
+            return _random.Next(1, 10) % 2 == 0 ? Direction.Vertical : Direction.Horizontal;
         }
     }
 }

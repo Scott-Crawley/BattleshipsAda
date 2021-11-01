@@ -149,7 +149,7 @@ namespace BattleshipsAda
                 Utilities.OutputList(new [] { "Horizontal", "Vertical" });
                 
                 var oriChoice = Utilities.RequestChoice(2);
-                var orientation = oriChoice == 1 ? Orientation.Horizontal : Orientation.Vertical;
+                var orientation = oriChoice == 1 ? Direction.Horizontal : Direction.Vertical;
 
                 Fleet.PlaceShip(ships[shipChoice - 1], tile, orientation);
             }
@@ -172,8 +172,8 @@ namespace BattleshipsAda
             }
         }
         
-        private Orientation RandomOrientation() {
-            return _random.Next(1, 10) % 2 == 0 ? Orientation.Vertical : Orientation.Horizontal;
+        private Direction RandomOrientation() {
+            return _random.Next(1, 10) % 2 == 0 ? Direction.Vertical : Direction.Horizontal;
         }
     }
 }
