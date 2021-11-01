@@ -19,7 +19,7 @@ namespace BattleshipsAda
             "Quit"
         };
         private readonly IAdmiral[] _admirals;
-        
+
         // Game Properties
         private Tuple<int, int> _boardSize;
         private int _turn;
@@ -27,6 +27,7 @@ namespace BattleshipsAda
         private bool _quit;
         private bool _salvo;
         private bool _mines;
+        private bool _warn;
 
         public List<ShipInfo> ShipTypes { get; private set; }
         public bool Setup { get; private set; }
@@ -40,13 +41,10 @@ namespace BattleshipsAda
 
         private void LoadConfiguration() {
             var config = Config.LoadConfiguration();
-            if (config.BoardSize == null || config.ShipTypes == null) {
-                Console.WriteLine("Malformed Configuration!");
-                return;
-            }
-            
+
             ShipTypes = config.ShipTypes;
             _boardSize = config.BoardSize;
+            _warn = config.WarnMalformed;
             
             // Prevent out-of-bounds crash if size is greater than 701x701
             if (_boardSize.Item1 > 701 || _boardSize.Item2 > 701) {
@@ -165,6 +163,13 @@ namespace BattleshipsAda
         private bool InitialiseGameMode() {
             while (!Setup) {
                 Console.Clear();
+
+                if (_warn) {
+                    Console.ForegroundColor = ConsoleColor.DarkYellow;
+                    Console.WriteLine("WARN: Malformed adaship_config.ini: using defaults");
+                    Console.ResetColor();
+                }
+                
                 Console.WriteLine("Mode Selection:");
                 Utilities.OutputList(_modeItems);
                 var choice = Utilities.RequestChoice(5);

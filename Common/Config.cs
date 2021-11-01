@@ -17,6 +17,7 @@ namespace BattleshipsAda
         private static Tuple<int, int> _boardSize;
         private static List<ShipInfo> _shipDict;
         private static DateTime _modifiedTime;
+        private static bool _warnMalformed;
 
         private static bool ValidateConfig() {
             if (!File.Exists(CONFIG_FILE)) return false;                                                           // Ensure file exists at path
@@ -30,35 +31,51 @@ namespace BattleshipsAda
 
         private static void Parse() {
             _boardSize = new Tuple<int, int>(10, 10);
-            _shipDict = new List<ShipInfo>();
-            
-            var lines = File.ReadAllLines(CONFIG_FILE);
-            foreach (var line in lines) {
-                var splitLine = line
-                    .ToLower()
-                    .Replace(SPACE, string.Empty)
-                    .Split(COLON);
+            _shipDict = LoadDefaultShips();
+            _warnMalformed = false;
 
-                var key = splitLine[0];                                                                           // Config (should be) formatted as `key: value`
-                var value = splitLine[1];
-                switch (key) {
-                    case BOAT: {
-                        var boatInfo = value.Split(COMMA);
-                        int.TryParse(boatInfo[1], out var shipSize);
-                        _shipDict.Add(new ShipInfo(boatInfo[0], shipSize));
-                        break;
-                    }
-                    case BOARD: {
-                        var xySize = value.Split(X_CHAR);
-                    
-                        int.TryParse(xySize[0], out var xSize);
-                        int.TryParse(xySize[1], out var ySize);
-                        _boardSize = new Tuple<int, int>(xSize, ySize);
-                        break;
+            try {
+                var lines = File.ReadAllLines(CONFIG_FILE);
+                foreach (var line in lines) {
+                    var splitLine = line
+                        .ToLower()
+                        .Replace(SPACE, string.Empty)
+                        .Split(COLON);
+
+                    var key = splitLine[0];                                                                       // Config (should be) formatted as `key: value`
+                    var value = splitLine[1];
+                    switch (key) {
+                        case BOAT: {
+                            var boatInfo = value.Split(COMMA);
+                            int.TryParse(boatInfo[1], out var shipSize);
+                            _shipDict.Add(new ShipInfo(boatInfo[0], shipSize));
+                            break;
+                        }
+                        case BOARD: {
+                            var xySize = value.Split(X_CHAR);
+
+                            int.TryParse(xySize[0], out var xSize);
+                            int.TryParse(xySize[1], out var ySize);
+                            _boardSize = new Tuple<int, int>(xSize, ySize);
+                            break;
+                        }
                     }
                 }
+                _modifiedTime = File.GetLastWriteTimeUtc(CONFIG_FILE);
             }
-            _modifiedTime = File.GetLastWriteTimeUtc(CONFIG_FILE);
+            catch (Exception) {
+                _warnMalformed = true;
+            }
+        }
+
+        private static List<ShipInfo> LoadDefaultShips() {
+            return new List<ShipInfo> {
+                new ShipInfo("Carrier", 5),
+                new ShipInfo("Battleship", 4),
+                new ShipInfo("Destroyer", 3),
+                new ShipInfo("Submarine", 3),
+                new ShipInfo("Patrol Boat", 2)
+            };
         }
         
         // Check if the file has been updated otherwise return the cached values
@@ -69,17 +86,19 @@ namespace BattleshipsAda
                     Parse();
                 }
             }
-            return new Configuration(_boardSize, _shipDict);
+            return new Configuration(_boardSize, _shipDict, _warnMalformed);
         }
 
         public class Configuration
         {
             public readonly Tuple<int, int> BoardSize;
             public readonly List<ShipInfo> ShipTypes;
+            public readonly bool WarnMalformed;
             
-            public Configuration(Tuple<int, int> boardSize, List<ShipInfo> shipTypes) {
+            public Configuration(Tuple<int, int> boardSize, List<ShipInfo> shipTypes, bool warnMalformed) {
                 BoardSize = boardSize;
                 ShipTypes = shipTypes;
+                WarnMalformed = warnMalformed;
             }
         }
     }
