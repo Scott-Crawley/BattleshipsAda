@@ -31,7 +31,7 @@ namespace BattleshipsAda
 
         private static void Parse() {
             _boardSize = new Tuple<int, int>(10, 10);
-            _shipDict = LoadDefaultShips();
+            _shipDict = new List<ShipInfo>();
             _warnMalformed = false;
 
             try {
@@ -64,6 +64,7 @@ namespace BattleshipsAda
                 _modifiedTime = File.GetLastWriteTimeUtc(CONFIG_FILE);
             }
             catch (Exception) {
+                _shipDict = LoadDefaultShips();
                 _warnMalformed = true;
             }
         }

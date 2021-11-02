@@ -1,16 +1,15 @@
-﻿using System;
-
-namespace BattleshipsAda
+﻿namespace BattleshipsAda
 {
-    class Program
+    internal static class Program
     {
-        static void Main(string[] args) {
+        private static void Main() {
             var controller = Controller.Get();
             if (controller.Setup) {
                 Utilities.RequestInput("Press any key to play...");
                 controller.Play();
             }
-            Console.WriteLine("Exiting...");
+
+            Utilities.RequestInput("\nPress any key to quit...");
         }
     }
 }
