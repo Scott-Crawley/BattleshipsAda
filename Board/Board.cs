@@ -131,7 +131,7 @@ namespace BattleshipsAda
         public void Render(bool clear = false) {
             if (clear) Console.Clear();
             Console.WriteLine();
-            Console.WriteLine(_boardName.PadLeft((_boardName.Length + (_size.Item1 * 3 / 4) + _size.Item1) / 2));       // Centre is roughly calculated as this somehow ¯\_(ツ)_/¯
+            Console.WriteLine(_boardName);
             
             var tileNo = 0;
             for (var row = _size.Item2; row > 0; row--) {                                                           // Decrement to get ascending Y-axis
