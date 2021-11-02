@@ -82,7 +82,7 @@ etc.
 
 The initial class structure with additionally defined properties is illustrated below:
 
-[Initial Design.png]
+![Initial Design](https://user-images.githubusercontent.com/74011247/139963426-f2475acb-68a5-4758-94dd-2159b263160e.png)
 
 ### Approach
 Decomposition of the problem into sub-tasks - each with their own GitHub issue - is the approach I'll be taking.
@@ -348,7 +348,7 @@ elsewhere.
 ## Evaluation
 ### End-of-Development UML Diagram
 
-[PlantUML.png]
+![PlantUML Diagram](https://user-images.githubusercontent.com/74011247/139963455-12b6b7c6-41ae-4d81-ad7f-8d72d73daf59.png)
 
 ### Reflection
 Initial development followed the outlined approach in **Approach** and led to the creation of a 'Project' board 
