@@ -131,6 +131,7 @@ namespace BattleshipsAda
                 if (_showAiBoards) {
                     if (_admirals[0].GetType() == typeof(Computer)) _admirals[0].Board.Render();
                     if (_admirals[1].GetType() == typeof(Computer)) _admirals[1].Board.Render();
+                    Console.WriteLine();
                 }
                 
                 Console.WriteLine($"Turn: [{_turn}]");
